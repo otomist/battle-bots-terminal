@@ -160,6 +160,32 @@ class Client {
 
     // Get player's bots for numbering
     const playerBots = bots.filter(bot => bot.playerId === player.id);
+    
+    // Show queue path for selected bot
+    const selectedBot = playerBots[player.selectedBotIndex];
+    if (selectedBot && selectedBot.queuePath && selectedBot.queuePath.length > 0) {
+      selectedBot.queuePath.forEach(pathItem => {
+        if (pathItem.x >= 0 && pathItem.x < width && pathItem.y >= 0 && pathItem.y < height) {
+          // Don't overwrite if there's already something there (bot, coin, etc.)
+          if (grid[pathItem.y][pathItem.x] === ' ') {
+            if (pathItem.type === 'ability') {
+              // Show ability marker
+              const abilityChar = {
+                'explosion': 'E',
+                'shoot': 'S',
+                'shockwave': 'H'
+              }[pathItem.ability] || 'A';
+              grid[pathItem.y][pathItem.x] = abilityChar;
+              colorGrid[pathItem.y][pathItem.x] = player.color;
+            } else {
+              // Show movement path
+              grid[pathItem.y][pathItem.x] = '·';
+              colorGrid[pathItem.y][pathItem.x] = player.color;
+            }
+          }
+        }
+      });
+    }
 
     // Place bots
     bots.forEach(bot => {

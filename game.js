@@ -315,7 +315,12 @@ class Game {
       }
     });
 
-    // Detect collisions
+    // Check for collisions with stationary bots
+    const stationaryBots = this.bots.filter(bot => 
+      !moveIntents.some(intent => intent.bot.id === bot.id)
+    );
+
+    // Detect collisions between moving bots
     const positionMap = new Map();
     moveIntents.forEach(intent => {
       const key = `${intent.newX},${intent.newY}`;
@@ -330,6 +335,11 @@ class Game {
       const key = `${intent.newX},${intent.newY}`;
       const botsAtPosition = positionMap.get(key);
       
+      // Check if there's a stationary bot at the target position
+      const stationaryAtTarget = stationaryBots.find(
+        bot => bot.x === intent.newX && bot.y === intent.newY
+      );
+      
       if (botsAtPosition.length > 1) {
         // Collision! Multiple bots trying to move to same spot
         const enemyBots = botsAtPosition.filter(i => 
@@ -341,8 +351,16 @@ class Game {
           intent.bot.takeDamage(10);
         }
         // Don't move the bot
+      } else if (stationaryAtTarget) {
+        // Trying to move onto a stationary bot
+        if (stationaryAtTarget.playerId !== intent.bot.playerId) {
+          // Enemy bot - collision damage to both
+          intent.bot.takeDamage(10);
+          stationaryAtTarget.takeDamage(10);
+        }
+        // Don't move (friendly or enemy)
       } else {
-        // Move successful
+        // Move successful - no collision
         intent.bot.x = intent.newX;
         intent.bot.y = intent.newY;
         
@@ -552,6 +570,38 @@ class Game {
     });
   }
 
+  calculateQueuePath(bot) {
+    const path = [];
+    let x = bot.x;
+    let y = bot.y;
+    
+    bot.moveQueue.forEach(command => {
+      if (command === 'ability') {
+        // Add ability marker at current position
+        path.push({ x, y, type: 'ability', ability: bot.ability });
+      } else {
+        // Calculate movement
+        switch (command) {
+          case 'w':
+            y = Math.max(0, y - 1);
+            break;
+          case 's':
+            y = Math.min(this.height - 1, y + 1);
+            break;
+          case 'a':
+            x = Math.max(0, x - 1);
+            break;
+          case 'd':
+            x = Math.min(this.width - 1, x + 1);
+            break;
+        }
+        path.push({ x, y, type: 'move' });
+      }
+    });
+    
+    return path;
+  }
+
   getGameStateForPlayer(playerId) {
     const player = this.players.get(playerId);
     if (!player) return null;
@@ -579,7 +629,8 @@ class Game {
         playerId: bot.playerId,
         ability: bot.ability,
         queueLength: bot.moveQueue.length,
-        isOwn: bot.playerId === playerId
+        isOwn: bot.playerId === playerId,
+        queuePath: this.calculateQueuePath(bot)
       })),
       coins: this.coins,
       effects: this.effects,
