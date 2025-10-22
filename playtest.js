@@ -528,6 +528,139 @@ test('Win condition checked after each tick', () => {
 });
 
 console.log('');
+console.log('Testing Collision with Stationary Bots:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 25: Moving bot onto stationary bot should cause collision
+test('Moving bot onto stationary bot causes collision', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  
+  const bot1 = p1.bots[0];
+  const bot2 = p2.bots[0];
+  
+  // Position bots adjacent
+  bot1.x = 5;
+  bot1.y = 5;
+  bot1.hp = 15;
+  bot1.clearQueue();
+  
+  bot2.x = 6;
+  bot2.y = 5;
+  bot2.hp = 15;
+  bot2.clearQueue(); // Not moving!
+  
+  // Bot1 moves onto bot2's position
+  bot1.addMove('d'); // Move right to (6,5) where bot2 is
+  
+  const hp1Before = bot1.hp;
+  const hp2Before = bot2.hp;
+  
+  newGame.tick();
+  
+  // Both should take collision damage
+  assert(bot1.hp === hp1Before - 10, `Bot 1 should take 10 damage, HP: ${hp1Before} -> ${bot1.hp}`);
+  assert(bot2.hp === hp2Before - 10, `Bot 2 should take 10 damage, HP: ${hp2Before} -> ${bot2.hp}`);
+});
+
+// Test 26: Stationary friendly bot doesn't cause collision
+test('Moving onto friendly stationary bot cancels move, no damage', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  newGame.addPlayer('player2', null); // Need 2 players to start
+  
+  // Give player 1 a second bot
+  const spawnPos = newGame.getRandomSpawnPosition();
+  const Bot = require('./game').Bot;
+  const bot2 = new Bot(newGame.botIdCounter++, spawnPos.x, spawnPos.y, p1.id);
+  newGame.bots.push(bot2);
+  p1.addBot(bot2);
+  
+  const bot1 = p1.bots[0];
+  
+  bot1.x = 5;
+  bot1.y = 5;
+  bot1.hp = 15;
+  bot1.clearQueue();
+  
+  bot2.x = 6;
+  bot2.y = 5;
+  bot2.hp = 15;
+  bot2.clearQueue();
+  
+  bot1.addMove('d'); // Try to move onto friendly bot
+  
+  const hp1Before = bot1.hp;
+  const hp2Before = bot2.hp;
+  const x1Before = bot1.x;
+  
+  newGame.tick();
+  
+  // No damage for friendly collision
+  assert(bot1.hp === hp1Before, `Bot 1 should not take damage from friendly, HP: ${bot1.hp}`);
+  assert(bot2.hp === hp2Before, `Bot 2 should not take damage from friendly, HP: ${bot2.hp}`);
+  assert(bot1.x === x1Before, `Bot 1 should not move onto friendly bot`);
+});
+
+console.log('');
+console.log('Testing Queue Visualization:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 27: Queue path is included in game state
+test('Game state includes queue path for visualization', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  newGame.addPlayer('player2', null);
+  
+  const bot = p1.bots[0];
+  bot.x = 10;
+  bot.y = 10;
+  bot.ability = 'shockwave';
+  bot.clearQueue();
+  
+  // Queue: d, d, d, q (ability), d, d
+  newGame.handlePlayerCommand(p1.id, 'd');
+  newGame.handlePlayerCommand(p1.id, 'd');
+  newGame.handlePlayerCommand(p1.id, 'd');
+  newGame.handlePlayerCommand(p1.id, 'q');
+  newGame.handlePlayerCommand(p1.id, 'd');
+  newGame.handlePlayerCommand(p1.id, 'd');
+  
+  const gameState = newGame.getGameStateForPlayer(p1.id);
+  const botState = gameState.bots.find(b => b.id === bot.id);
+  
+  assert(botState.queuePath !== undefined, 'Bot state should include queuePath');
+  assert(Array.isArray(botState.queuePath), 'queuePath should be an array');
+  assert(botState.queuePath.length === 6, `Expected 6 queue items, got ${botState.queuePath.length}`);
+});
+
+// Test 28: Queue path calculates positions correctly
+test('Queue path calculates future positions correctly', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  newGame.addPlayer('player2', null);
+  
+  const bot = p1.bots[0];
+  bot.x = 10;
+  bot.y = 10;
+  bot.clearQueue();
+  
+  // Queue: d (right), s (down)
+  bot.addMove('d');
+  bot.addMove('s');
+  
+  const gameState = newGame.getGameStateForPlayer(p1.id);
+  const botState = gameState.bots.find(b => b.id === bot.id);
+  
+  assert(botState.queuePath.length === 2, 'Should have 2 positions in path');
+  assert(botState.queuePath[0].x === 11 && botState.queuePath[0].y === 10, 
+    `First position should be (11,10), got (${botState.queuePath[0].x},${botState.queuePath[0].y})`);
+  assert(botState.queuePath[1].x === 11 && botState.queuePath[1].y === 11,
+    `Second position should be (11,11), got (${botState.queuePath[1].x},${botState.queuePath[1].y})`);
+});
+
+console.log('');
 console.log('═══════════════════════════════════════════════════════════════');
 console.log(`Tests Passed: ${testsPassed}`);
 console.log(`Tests Failed: ${testsFailed}`);
