@@ -85,7 +85,7 @@ Battle Bots is a multiplayer terminal-based strategy game where players command 
 | Explosion | Q | $10 | Equip explosion ability |
 | Shoot | F | $10 | Equip shoot ability |
 | Shockwave | H | $20 | Equip shockwave ability |
-| New Bot | B | $15 | Spawn additional bot (max 5 total) |
+| New Bot | B | $10 | Spawn additional bot (max 5 total) |
 
 ### Buying Rules
 - Can only buy for selected bot
@@ -168,7 +168,7 @@ Players:
 ║ Q - Explosion Ability ....... $10     ║
 ║ F - Shoot Ability ........... $10     ║
 ║ H - Shockwave Ability ....... $20     ║
-║ B - Buy New Bot ............. $15     ║
+║ B - Buy New Bot ............. $10     ║
 ╠═══════════════════════════════════════╣
 ║ P - Close Menu                        ║
 ╚═══════════════════════════════════════╝
@@ -234,7 +234,7 @@ Players:
 
 ### Early Game (0-60 seconds)
 1. **Priority**: Collect coins
-2. Buy second bot at $15
+2. Buy second bot at $10
 3. Spread out to cover more ground
 4. Avoid enemy contact until stronger
 
@@ -332,7 +332,7 @@ Players:
   - Explosion/Shoot: Accessible early
   - Shockwave: Premium option
   
-- **Bot cost**: $15 (1.5 coins)
+- **Bot cost**: $10 (1 coin)
   - Not too expensive
   - Not too cheap
   

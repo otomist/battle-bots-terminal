@@ -43,7 +43,7 @@ No installation needed! Just Node.js (v12+).
 2. **Move around** with WASD keys to collect `$` coins
 3. **Each coin** = $10
 4. **Press P** to open the buy menu
-5. **Press B** to buy more bots ($15 each, max 5)
+5. **Press B** to buy more bots ($10 each, max 5)
 6. **Press Q/F/H** to buy abilities
 7. **Find enemies** and attack!
 
