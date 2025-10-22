@@ -321,6 +321,121 @@ test('Number keys select bots', () => {
 });
 
 console.log('');
+console.log('Testing Ability Queuing:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 18: Abilities should be queued, not instant
+test('Abilities are queued with movement commands', () => {
+  const bot = player1.bots[0];
+  bot.ability = 'explosion';
+  bot.clearQueue();
+  bot.x = 10;
+  bot.y = 10;
+  
+  // Queue: move, move, ability, move
+  game.handlePlayerCommand(player1.id, 's'); // down
+  game.handlePlayerCommand(player1.id, 's'); // down
+  game.handlePlayerCommand(player1.id, 'q'); // ability
+  game.handlePlayerCommand(player1.id, 'a'); // left
+  
+  assert(bot.moveQueue.length === 4, `Expected 4 queued commands, got ${bot.moveQueue.length}`);
+  
+  // First tick: execute first command (move down)
+  const startY = bot.y;
+  game.tick();
+  assert(bot.y === startY + 1, `Expected bot to move down to ${startY + 1}, got ${bot.y}`);
+  assert(bot.moveQueue.length === 3, `Expected 3 commands remaining, got ${bot.moveQueue.length}`);
+  
+  // Second tick: execute second command (move down)
+  game.tick();
+  assert(bot.y === startY + 2, `Expected bot at ${startY + 2}, got ${bot.y}`);
+  assert(bot.moveQueue.length === 2, `Expected 2 commands remaining, got ${bot.moveQueue.length}`);
+  
+  // Third tick: should execute ability
+  game.effects = [];
+  game.tick();
+  assert(game.effects.length > 0, 'Ability should have been used, creating effects');
+  assert(bot.moveQueue.length === 1, `Expected 1 command remaining, got ${bot.moveQueue.length}`);
+  
+  // Fourth tick: execute last move (left)
+  const startX = bot.x;
+  game.effects = [];
+  game.tick();
+  assert(bot.x === startX - 1, `Expected bot to move left to ${startX - 1}, got ${bot.x}`);
+  assert(bot.moveQueue.length === 0, `Expected 0 commands remaining, got ${bot.moveQueue.length}`);
+});
+
+console.log('');
+console.log('Testing H-Shape Shockwave Pattern:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 19: H ability should form proper H shape
+test('Shockwave ability creates proper H shape', () => {
+  const attacker = player1.bots[0];
+  attacker.ability = 'shockwave';
+  attacker.x = 10;
+  attacker.y = 10;
+  
+  game.effects = [];
+  game.useAbility(attacker, 'shockwave');
+  
+  // H shape should include:
+  // Left vertical: x-2, y-2 to y+2
+  // Right vertical: x+2, y-2 to y+2
+  // Middle horizontal: x-2 to x+2, y
+  
+  const expectedPositions = [
+    // Left vertical
+    {x: 8, y: 8}, {x: 8, y: 9}, {x: 8, y: 10}, {x: 8, y: 11}, {x: 8, y: 12},
+    // Middle horizontal (excluding center where bot is)
+    {x: 9, y: 10}, {x: 11, y: 10},
+    // Right vertical
+    {x: 12, y: 8}, {x: 12, y: 9}, {x: 12, y: 10}, {x: 12, y: 11}, {x: 12, y: 12}
+  ];
+  
+  assert(game.effects.length >= expectedPositions.length, 
+    `Expected at least ${expectedPositions.length} effect positions for H shape, got ${game.effects.length}`);
+  
+  // Check that key H positions are present
+  const hasLeftTop = game.effects.some(e => e.x === 8 && e.y === 8);
+  const hasLeftBottom = game.effects.some(e => e.x === 8 && e.y === 12);
+  const hasRightTop = game.effects.some(e => e.x === 12 && e.y === 8);
+  const hasRightBottom = game.effects.some(e => e.x === 12 && e.y === 12);
+  const hasMiddle = game.effects.some(e => e.x === 10 && e.y === 10);
+  
+  assert(hasLeftTop, 'H shape should have left top corner');
+  assert(hasLeftBottom, 'H shape should have left bottom corner');
+  assert(hasRightTop, 'H shape should have right top corner');
+  assert(hasRightBottom, 'H shape should have right bottom corner');
+  assert(hasMiddle, 'H shape should have middle horizontal bar');
+});
+
+// Test 20: H ability damages bots in H pattern
+test('Shockwave damages bots in H pattern, not outside', () => {
+  const attacker = player1.bots[0];
+  attacker.ability = 'shockwave';
+  attacker.x = 10;
+  attacker.y = 10;
+  
+  // Place victim in H pattern (left vertical)
+  const victim1 = player2.bots[0];
+  victim1.x = 8; // 2 left
+  victim1.y = 8; // 2 up
+  victim1.hp = 10;
+  
+  // Place victim outside H pattern
+  const victim2 = player2.bots[1];
+  victim2.x = 9; // 1 left (between vertical bars)
+  victim2.y = 9; // 1 up (between horizontal bar and top)
+  victim2.hp = 10;
+  
+  game.useAbility(attacker, 'shockwave');
+  
+  assert(victim1.hp === 5, `Victim in H pattern should take 5 damage, HP: ${victim1.hp}`);
+  assert(victim2.hp === 10, `Victim outside H pattern should not take damage, HP: ${victim2.hp}`);
+});
+
+console.log('');
 console.log('═══════════════════════════════════════════════════════════════');
 console.log(`Tests Passed: ${testsPassed}`);
 console.log(`Tests Failed: ${testsFailed}`);
