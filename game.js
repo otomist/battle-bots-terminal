@@ -15,6 +15,10 @@ class Bot {
     this.moveQueue.push(direction);
   }
 
+  addAbilityToQueue() {
+    this.moveQueue.push('ability');
+  }
+
   clearQueue() {
     this.moveQueue = [];
   }
@@ -205,10 +209,10 @@ class Game {
       return;
     }
 
-    // Use ability
+    // Use ability - add to queue
     if (cmd === 'q') {
-      if (selectedBot.ability) {
-        this.useAbility(selectedBot, selectedBot.ability);
+      if (selectedBot && selectedBot.ability) {
+        selectedBot.addAbilityToQueue();
       }
       return;
     }
@@ -275,21 +279,31 @@ class Game {
   tick() {
     this.effects = []; // Clear effects from last tick
 
-    // Collect all intended moves
+    // Collect all intended moves and ability uses
     const moveIntents = [];
+    const abilityUses = [];
     
     this.bots.forEach(bot => {
       if (bot.hasQueuedMoves()) {
-        const move = bot.getNextMove();
-        const newPos = this.calculateNewPosition(bot, move);
+        const command = bot.getNextMove();
         
-        if (newPos) {
-          moveIntents.push({
-            bot,
-            newX: newPos.x,
-            newY: newPos.y,
-            direction: move
-          });
+        // Check if it's an ability command
+        if (command === 'ability') {
+          if (bot.ability) {
+            abilityUses.push(bot);
+          }
+        } else {
+          // It's a movement command
+          const newPos = this.calculateNewPosition(bot, command);
+          
+          if (newPos) {
+            moveIntents.push({
+              bot,
+              newX: newPos.x,
+              newY: newPos.y,
+              direction: command
+            });
+          }
         }
       }
     });
@@ -339,6 +353,11 @@ class Game {
         // Check for coin pickup
         this.checkCoinPickup(intent.bot);
       }
+    });
+
+    // Execute abilities
+    abilityUses.forEach(bot => {
+      this.useAbility(bot, bot.ability);
     });
 
     // Remove dead bots
@@ -467,19 +486,25 @@ class Game {
   }
 
   shockwaveAbility(bot, player) {
-    // H-shape: 2 tiles left and right, then 2 tiles up from each end
+    // H-shape: proper H pattern
+    // Left vertical bar: x-2, from y-2 to y+2
+    // Right vertical bar: x+2, from y-2 to y+2
+    // Middle horizontal bar: y, from x-2 to x+2
     const positions = [];
     
-    // Horizontal parts (2 tiles each side)
-    for (let i = 1; i <= 2; i++) {
-      positions.push({ x: bot.x - i, y: bot.y }); // left
-      positions.push({ x: bot.x + i, y: bot.y }); // right
+    // Left vertical bar (5 tiles: 2 up, center, 2 down)
+    for (let dy = -2; dy <= 2; dy++) {
+      positions.push({ x: bot.x - 2, y: bot.y + dy });
     }
     
-    // Vertical parts from the ends (2 tiles up)
-    for (let i = 1; i <= 2; i++) {
-      positions.push({ x: bot.x - 2, y: bot.y - i }); // left up
-      positions.push({ x: bot.x + 2, y: bot.y - i }); // right up
+    // Right vertical bar (5 tiles: 2 up, center, 2 down)
+    for (let dy = -2; dy <= 2; dy++) {
+      positions.push({ x: bot.x + 2, y: bot.y + dy });
+    }
+    
+    // Middle horizontal bar (3 tiles: don't include the verticals)
+    for (let dx = -1; dx <= 1; dx++) {
+      positions.push({ x: bot.x + dx, y: bot.y });
     }
 
     positions.forEach(pos => {
