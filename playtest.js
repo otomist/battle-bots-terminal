@@ -528,6 +528,144 @@ test('Win condition checked after each tick', () => {
 });
 
 console.log('');
+console.log('Testing Collision Fixes:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 25: Collision with stationary bot
+test('Bot moving onto stationary bot causes collision', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  
+  const bot1 = p1.bots[0];
+  const bot2 = p2.bots[0];
+  
+  // Bot 1 at (5,5) - stationary (no moves queued)
+  bot1.x = 5;
+  bot1.y = 5;
+  bot1.clearQueue();
+  bot1.hp = 15;
+  
+  // Bot 2 at (4,5) - will move right onto bot1
+  bot2.x = 4;
+  bot2.y = 5;
+  bot2.clearQueue();
+  bot2.addMove('d'); // Move right to (5,5) where bot1 is
+  bot2.hp = 15;
+  
+  const bot1HpBefore = bot1.hp;
+  const bot2HpBefore = bot2.hp;
+  
+  newGame.tick();
+  
+  // Both should take collision damage
+  assert(bot1.hp === bot1HpBefore - 10, `Bot 1 should take 10 damage from collision, HP: ${bot1HpBefore} -> ${bot1.hp}`);
+  assert(bot2.hp === bot2HpBefore - 10, `Bot 2 should take 10 damage from collision, HP: ${bot2HpBefore} -> ${bot2.hp}`);
+  
+  // Bot 2 should not have moved (collision blocked)
+  assert(bot2.x === 4, `Bot 2 should not move, still at x=${bot2.x}`);
+});
+
+// Test 26: Multiple bots trying to move to same occupied tile
+test('Multiple bots moving to occupied tile all take damage', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  const p3 = newGame.addPlayer('player3', null);
+  
+  const bot1 = p1.bots[0];
+  const bot2 = p2.bots[0];
+  const bot3 = p3.bots[0];
+  
+  // Bot 1 stationary at (10,10)
+  bot1.x = 10;
+  bot1.y = 10;
+  bot1.clearQueue();
+  bot1.hp = 20;
+  
+  // Bot 2 moves from (9,10) to (10,10)
+  bot2.x = 9;
+  bot2.y = 10;
+  bot2.clearQueue();
+  bot2.addMove('d');
+  bot2.hp = 20;
+  
+  // Bot 3 moves from (11,10) to (10,10)
+  bot3.x = 11;
+  bot3.y = 10;
+  bot3.clearQueue();
+  bot3.addMove('a');
+  bot3.hp = 20;
+  
+  newGame.tick();
+  
+  // All three should take damage (each colliding with others)
+  assert(bot1.hp === 10, `Bot 1 should take damage: ${bot1.hp}`);
+  assert(bot2.hp === 10, `Bot 2 should take damage: ${bot2.hp}`);
+  assert(bot3.hp === 10, `Bot 3 should take damage: ${bot3.hp}`);
+});
+
+console.log('');
+console.log('Testing Movement Queue Visualization:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 27: Queue visualization shows movement path
+test('Movement queue returns visual representation', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const bot = p1.bots[0];
+  
+  bot.clearQueue();
+  bot.addMove('d');
+  bot.addMove('d');
+  bot.addMove('s');
+  
+  const visual = bot.getQueueVisualization();
+  assert(visual === '###', `Expected '###' for 3 moves, got '${visual}'`);
+});
+
+// Test 28: Queue visualization shows ability as letter
+test('Queue visualization shows ability with correct letter', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const bot = p1.bots[0];
+  
+  bot.clearQueue();
+  bot.ability = 'shockwave';
+  bot.addMove('d');
+  bot.addMove('d');
+  bot.addAbilityToQueue();
+  bot.addMove('d');
+  
+  const visual = bot.getQueueVisualization();
+  assert(visual === '##H#', `Expected '##H#' for moves+H ability, got '${visual}'`);
+});
+
+// Test 29: Different abilities show different letters
+test('Queue visualization shows correct letters for each ability', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  
+  // Test explosion
+  const bot1 = p1.bots[0];
+  bot1.clearQueue();
+  bot1.ability = 'explosion';
+  bot1.addAbilityToQueue();
+  assert(bot1.getQueueVisualization() === 'E', `Expected 'E' for explosion, got '${bot1.getQueueVisualization()}'`);
+  
+  // Add another bot for shoot test
+  const spawnPos = newGame.getRandomSpawnPosition();
+  const bot2 = new (require('./game').Bot)(newGame.botIdCounter++, spawnPos.x, spawnPos.y, p1.id);
+  newGame.bots.push(bot2);
+  p1.addBot(bot2);
+  
+  bot2.clearQueue();
+  bot2.ability = 'shoot';
+  bot2.addAbilityToQueue();
+  assert(bot2.getQueueVisualization() === 'S', `Expected 'S' for shoot, got '${bot2.getQueueVisualization()}'`);
+});
+
+console.log('');
 console.log('═══════════════════════════════════════════════════════════════');
 console.log(`Tests Passed: ${testsPassed}`);
 console.log(`Tests Failed: ${testsFailed}`);

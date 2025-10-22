@@ -213,7 +213,9 @@ class Client {
       const selectedBot = playerBots[player.selectedBotIndex];
       if (selectedBot) {
         const abilityName = selectedBot.ability || 'none';
-        console.log(`Selected Bot: ${this.colorize('@', player.color)} | HP: ${selectedBot.hp}/${selectedBot.maxHp} | Ability: ${abilityName} | Queue: ${selectedBot.queueLength}`);
+        const queueViz = selectedBot.queueVisualization || '';
+        const queueDisplay = queueViz.length > 0 ? ` [${queueViz}]` : '';
+        console.log(`Selected Bot: ${this.colorize('@', player.color)} | HP: ${selectedBot.hp}/${selectedBot.maxHp} | Ability: ${abilityName} | Queue: ${selectedBot.queueLength}${queueDisplay}`);
       }
     }
 
