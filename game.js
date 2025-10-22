@@ -110,6 +110,8 @@ class Game {
     this.colors = ['red', 'blue', 'green', 'yellow', 'magenta', 'cyan'];
     this.chars = ['█', '▓', '▒', '░', '■', '●'];
     this.usedColorIndices = [];
+    this.gameState = 'waiting'; // waiting, playing, finished
+    this.winner = null; // playerId of winner
   }
 
   addPlayer(playerId, socket) {
@@ -131,6 +133,11 @@ class Game {
     const bot = new Bot(this.botIdCounter++, spawnPos.x, spawnPos.y, playerId);
     this.bots.push(bot);
     player.addBot(bot);
+
+    // Start game when we have at least 2 players
+    if (this.players.size >= 2 && this.gameState === 'waiting') {
+      this.gameState = 'playing';
+    }
 
     return player;
   }
@@ -371,6 +378,30 @@ class Game {
       }
       return true;
     });
+
+    // Check win condition after tick
+    this.checkWinCondition();
+  }
+
+  checkWinCondition() {
+    // Only check if game is playing
+    if (this.gameState !== 'playing') return;
+
+    // Find all players with bots remaining
+    const playersWithBots = Array.from(this.players.values()).filter(
+      player => player.bots.length > 0
+    );
+
+    // If only 1 player has bots, they win!
+    if (playersWithBots.length === 1) {
+      this.gameState = 'finished';
+      this.winner = playersWithBots[0].id;
+    }
+    // If no players have bots (all died simultaneously), it's a draw
+    else if (playersWithBots.length === 0) {
+      this.gameState = 'finished';
+      this.winner = 'draw';
+    }
   }
 
   calculateNewPosition(bot, move) {
@@ -528,6 +559,8 @@ class Game {
     return {
       width: this.width,
       height: this.height,
+      gameState: this.gameState,
+      winner: this.winner,
       player: {
         id: player.id,
         money: player.money,
