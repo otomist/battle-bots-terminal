@@ -1,0 +1,66 @@
+battle-bots-terminal/
+│
+├── 🎮 GAME FILES
+│   ├── server.js          - Main server, handles connections & broadcasting
+│   ├── game.js            - Game logic: bots, combat, abilities, economy
+│   └── client.js          - Terminal client with rendering & input
+│
+├── 📚 DOCUMENTATION
+│   ├── README.md          - Complete game documentation
+│   ├── QUICKSTART.md      - Fast start guide
+│   ├── GAME_DESIGN.md     - Detailed design document
+│   ├── PROJECT_SUMMARY.md - This project overview
+│   └── STRUCTURE.txt      - This file structure diagram
+│
+├── 🧪 TESTING & DEMO
+│   ├── test.js            - Unit tests for game logic
+│   ├── demo.js            - Visual demo of game appearance
+│   └── start-demo.sh      - Quick demo launcher (executable)
+│
+├── 📦 PROJECT FILES
+│   ├── package.json       - Project metadata & scripts
+│   ├── .gitignore        - Git ignore rules
+│   └── .git/             - Git repository
+│
+└── 🎯 HOW TO USE
+    │
+    ├── For Playing:
+    │   Terminal 1: $ node server.js
+    │   Terminal 2: $ node client.js
+    │   Terminal 3: $ node client.js
+    │
+    ├── For Testing:
+    │   $ node test.js
+    │
+    └── For Demo:
+        $ node demo.js
+        $ ./start-demo.sh
+
+KEY FEATURES:
+✅ Multiplayer (up to 6 players)
+✅ Real-time combat (2-second ticks)
+✅ Command queuing (WASD movement)
+✅ Economy system (collect coins, buy stuff)
+✅ 3 Abilities (explosion, shoot, shockwave)
+✅ Up to 5 bots per player
+✅ Collision damage system
+✅ No friendly fire
+✅ Beautiful ANSI terminal graphics
+✅ Pure Node.js (no npm dependencies!)
+
+TECH STACK:
+- Node.js built-in modules only:
+  • net (TCP sockets)
+  • readline (keyboard input)
+  • All game logic custom-built
+
+ARCHITECTURE:
+┌─────────┐                    ┌─────────┐
+│ Client  │ ←──── TCP ────→    │ Server  │
+│ (UI +   │   (port 3000)      │ (Game   │
+│  Input) │                    │  Logic) │
+└─────────┘                    └─────────┘
+     ↑                              ↑
+     │                              │
+     └─────── game.js ──────────────┘
+           (Shared Logic)
