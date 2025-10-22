@@ -234,7 +234,7 @@ Players:
 
 ### Early Game (0-60 seconds)
 1. **Priority**: Collect coins
-2. Buy second bot at $15
+2. Buy second bot at $10
 3. Spread out to cover more ground
 4. Avoid enemy contact until stronger
 

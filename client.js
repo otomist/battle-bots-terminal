@@ -230,7 +230,7 @@ class Client {
       console.log('║ Q - Explosion Ability ....... $10     ║');
       console.log('║ F - Shoot Ability ........... $10     ║');
       console.log('║ H - Shockwave Ability ....... $20     ║');
-      console.log('║ B - Buy New Bot ............. $15     ║');
+      console.log('║ B - Buy New Bot ............. $10     ║');
       console.log('╠═══════════════════════════════════════╣');
       console.log('║ P - Close Menu                        ║');
       console.log('╚═══════════════════════════════════════╝');
