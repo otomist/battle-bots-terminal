@@ -160,11 +160,22 @@ class Game {
   }
 
   handlePlayerCommand(playerId, command) {
-    console.log(`Handling command from ${playerId}: ${command}`);
     const player = this.players.get(playerId);
     if (!player) return;
 
     const cmd = command.toLowerCase();
+
+    // Toggle buy menu (always check this first)
+    if (cmd === 'p') {
+      player.buyMenuOpen = !player.buyMenuOpen;
+      return;
+    }
+
+    // Buy menu commands - handle these before anything else if menu is open
+    if (player.buyMenuOpen) {
+      this.handleBuyCommand(player, player.getSelectedBot(), cmd);
+      return;
+    }
 
     // Bot selection (1-5)
     if (cmd >= '1' && cmd <= '5') {
@@ -196,68 +207,53 @@ class Game {
 
     // Use ability
     if (cmd === 'q') {
-      console.log(`Player ${playerId} attempting to use ability of bot ${selectedBot.id}`);
       if (selectedBot.ability) {
-        console.log(`Player ${playerId} using ability ${selectedBot.ability} of bot ${selectedBot.id}`);
         this.useAbility(selectedBot, selectedBot.ability);
       }
       return;
     }
-
-    // Toggle buy menu
-    if (cmd === 'p') {
-      player.buyMenuOpen = !player.buyMenuOpen;
-      return;
-    }
-
-    // Buy menu commands
-    if (player.buyMenuOpen) {
-      this.handleBuyCommand(player, selectedBot, cmd);
-    }
   }
 
   handleBuyCommand(player, bot, cmd) {
-    if (!bot) return;
-
     switch (cmd) {
       case 'r': // repair 10 armor
-        if (player.money >= 5) {
+        if (bot && player.money >= 5) {
           player.money -= 5;
           bot.heal(10);
           player.buyMenuOpen = false;
         }
         break;
       case 'a': // buy 5 armor
-        if (player.money >= 5) {
+        if (bot && player.money >= 5) {
           player.money -= 5;
           bot.addArmor(5);
           player.buyMenuOpen = false;
         }
         break;
       case 'q': // explosion ability
-        if (player.money >= 10 && !bot.ability) {
+        if (bot && player.money >= 10 && !bot.ability) {
           player.money -= 10;
           bot.ability = 'explosion';
           player.buyMenuOpen = false;
         }
         break;
       case 'f': // shoot ability
-        if (player.money >= 10 && !bot.ability) {
+        if (bot && player.money >= 10 && !bot.ability) {
           player.money -= 10;
           bot.ability = 'shoot';
           player.buyMenuOpen = false;
         }
         break;
       case 'h': // H-shape shockwave
-        if (player.money >= 20 && !bot.ability) {
+        if (bot && player.money >= 20 && !bot.ability) {
           player.money -= 20;
           bot.ability = 'shockwave';
           player.buyMenuOpen = false;
         }
         break;
       case 'b': // buy new bot
-        if (player.money >= 15 && player.bots.length < 5) {
-          player.money -= 15;
+        if (player.money >= 10 && player.bots.length < 5) {
+          player.money -= 10;
           const spawnPos = this.getRandomSpawnPosition();
           const newBot = new Bot(this.botIdCounter++, spawnPos.x, spawnPos.y, player.id);
           this.bots.push(newBot);

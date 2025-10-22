@@ -91,7 +91,7 @@ Each bot can equip ONE ability:
 - **Q** - Explosion Ability ............ $10
 - **F** - Shoot Ability ................ $10
 - **H** - Shockwave Ability ............ $20
-- **B** - Buy New Bot .................. $15
+- **B** - Buy New Bot .................. $10
 
 ### Strategy Tips
 
