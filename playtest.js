@@ -436,6 +436,101 @@ test('Shockwave damages bots in H pattern, not outside', () => {
 });
 
 console.log('');
+console.log('Testing Win Detection:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 21: Game starts when 2 players connect
+test('Game starts when 2 players connect', () => {
+  const newGame = new (require('./game').Game)();
+  
+  assert(newGame.gameState === 'waiting', `Game should start in waiting state, got ${newGame.gameState}`);
+  
+  newGame.addPlayer('player_a', null);
+  assert(newGame.gameState === 'waiting', `Game should still be waiting with 1 player, got ${newGame.gameState}`);
+  
+  newGame.addPlayer('player_b', null);
+  assert(newGame.gameState === 'playing', `Game should be playing with 2 players, got ${newGame.gameState}`);
+});
+
+// Test 22: Game detects winner when only 1 player has bots
+test('Game ends when only 1 player has bots remaining', () => {
+  const newGame = new (require('./game').Game)();
+  
+  const p1 = newGame.addPlayer('winner', null);
+  const p2 = newGame.addPlayer('loser', null);
+  
+  assert(newGame.gameState === 'playing', 'Game should be playing');
+  assert(newGame.winner === null, 'No winner yet');
+  
+  // Kill all of player 2's bots
+  p2.bots.forEach(bot => bot.hp = 0);
+  newGame.bots = newGame.bots.filter(bot => bot.playerId !== p2.id);
+  p2.bots = [];
+  
+  // Check for winner
+  newGame.checkWinCondition();
+  
+  assert(newGame.gameState === 'ended', `Game should be ended, got ${newGame.gameState}`);
+  assert(newGame.winner === p1.id, `Winner should be ${p1.id}, got ${newGame.winner}`);
+});
+
+// Test 23: No winner if multiple players still have bots
+test('No winner while multiple players have bots', () => {
+  const newGame = new (require('./game').Game)();
+  
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  const p3 = newGame.addPlayer('player3', null);
+  
+  // All players have bots
+  newGame.checkWinCondition();
+  assert(newGame.gameState === 'playing', 'Game should still be playing');
+  assert(newGame.winner === null, 'No winner yet');
+  
+  // Remove player 3's bots
+  p3.bots = [];
+  newGame.bots = newGame.bots.filter(bot => bot.playerId !== p3.id);
+  
+  // Still 2 players with bots
+  newGame.checkWinCondition();
+  assert(newGame.gameState === 'playing', 'Game should still be playing with 2 players');
+  assert(newGame.winner === null, 'No winner yet');
+});
+
+// Test 24: Game checks for winner each tick
+test('Win condition checked automatically during tick', () => {
+  const newGame = new (require('./game').Game)();
+  
+  const p1 = newGame.addPlayer('survivor', null);
+  const p2 = newGame.addPlayer('eliminated', null);
+  
+  assert(newGame.gameState === 'playing', 'Game should be playing');
+  
+  // Use ability to kill bot2
+  const bot1 = p1.bots[0];
+  const bot2 = p2.bots[0];
+  
+  bot1.x = 10;
+  bot1.y = 10;
+  bot1.ability = 'explosion';
+  
+  bot2.x = 11;
+  bot2.y = 10; // Adjacent to bot1
+  bot2.hp = 5; // Will die from explosion (5 - 5 = 0)
+  
+  // Queue and execute ability
+  bot1.addAbilityToQueue();
+  newGame.tick();
+  
+  // Check game state
+  const playersWithBots = Array.from(newGame.players.values()).filter(p => p.bots.length > 0);
+  
+  assert(playersWithBots.length === 1, `Should have 1 player with bots, got ${playersWithBots.length}`);
+  assert(newGame.gameState === 'ended', `Game should be ended, got ${newGame.gameState}`);
+  assert(newGame.winner === p1.id, `Winner should be ${p1.id}, got ${newGame.winner}`);
+});
+
+console.log('');
 console.log('═══════════════════════════════════════════════════════════════');
 console.log(`Tests Passed: ${testsPassed}`);
 console.log(`Tests Failed: ${testsFailed}`);

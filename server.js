@@ -104,7 +104,7 @@ class Server {
     setInterval(() => {
       game.spawnCoin();
       this.broadcastGameState();
-    }, 5000);
+    }, 5000/2);
   }
 }
 

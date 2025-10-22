@@ -110,6 +110,8 @@ class Game {
     this.colors = ['red', 'blue', 'green', 'yellow', 'magenta', 'cyan'];
     this.chars = ['█', '▓', '▒', '░', '■', '●'];
     this.usedColorIndices = [];
+    this.gameState = 'waiting'; // waiting, playing, ended
+    this.winner = null; // player id of winner
   }
 
   addPlayer(playerId, socket) {
@@ -132,6 +134,11 @@ class Game {
     this.bots.push(bot);
     player.addBot(bot);
 
+    // Start game when we have at least 2 players
+    if (this.players.size >= 2 && this.gameState === 'waiting') {
+      this.gameState = 'playing';
+    }
+
     return player;
   }
 
@@ -141,11 +148,39 @@ class Game {
       // Remove all bots belonging to this player
       this.bots = this.bots.filter(bot => bot.playerId !== playerId);
       this.players.delete(playerId);
+      
+      // Check if game should end
+      this.checkWinCondition();
     }
   }
 
   getPlayer(playerId) {
     return this.players.get(playerId);
+  }
+
+  checkWinCondition() {
+    // Only check if game is playing
+    if (this.gameState !== 'playing') return;
+
+    // Find players who still have bots
+    const playersWithBots = [];
+    this.players.forEach((player, playerId) => {
+      if (player.bots.length > 0) {
+        playersWithBots.push(playerId);
+      }
+    });
+
+    // If only 1 player has bots remaining, they win!
+    if (playersWithBots.length === 1) {
+      this.gameState = 'ended';
+      this.winner = playersWithBots[0];
+    }
+    
+    // If no players have bots, it's a draw (shouldn't happen normally)
+    if (playersWithBots.length === 0) {
+      this.gameState = 'ended';
+      this.winner = null;
+    }
   }
 
   getRandomSpawnPosition() {
@@ -371,6 +406,9 @@ class Game {
       }
       return true;
     });
+
+    // Check if someone won
+    this.checkWinCondition();
   }
 
   calculateNewPosition(bot, move) {
@@ -528,6 +566,8 @@ class Game {
     return {
       width: this.width,
       height: this.height,
+      gameState: this.gameState,
+      winner: this.winner,
       player: {
         id: player.id,
         money: player.money,

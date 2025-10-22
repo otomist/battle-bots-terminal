@@ -120,13 +120,110 @@ class Client {
     return (this.colors[color] || '') + text + this.colors.reset;
   }
 
+  renderWaitingScreen(players) {
+    console.log('');
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║                                                              ║');
+    console.log('║                    BATTLE BOTS                               ║');
+    console.log('║                                                              ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log('  Waiting for players to join...');
+    console.log('  Need at least 2 players to start');
+    console.log('');
+    console.log('  Players connected: ' + players.length);
+    console.log('');
+    if (players.length > 0) {
+      console.log('  Current players:');
+      players.forEach(p => {
+        console.log(`    ${this.colorize(p.char, p.color)} ${p.id === this.playerId ? '(You)' : ''}`);
+      });
+    }
+    console.log('');
+  }
+
+  renderWinScreen(winnerId, players) {
+    const winnerPlayer = players.find(p => p.id === winnerId);
+    if (!winnerPlayer) return;
+
+    console.log('');
+    console.log('');
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║                                                              ║');
+    console.log('║                      GAME OVER!                              ║');
+    console.log('║                                                              ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log('');
+    
+    // Winner announcement in their color
+    const winnerText = `PLAYER [${winnerId}] WINS!`;
+    const padding = Math.floor((60 - winnerText.length) / 2);
+    console.log(' '.repeat(padding) + this.colorize(winnerText, winnerPlayer.color));
+    console.log('');
+    console.log('');
+    
+    // Show final standings
+    console.log('  Final Standings:');
+    console.log('  ═══════════════════════════════════════════════════');
+    console.log('');
+    
+    // Winner first
+    console.log(`  🏆 1st Place: ${this.colorize(winnerPlayer.char, winnerPlayer.color)} [${winnerId}] - ${winnerPlayer.botsCount} bot${winnerPlayer.botsCount !== 1 ? 's' : ''} remaining`);
+    
+    // Other players
+    let place = 2;
+    players.forEach(p => {
+      if (p.id !== winnerId) {
+        console.log(`     ${place}${this.getOrdinalSuffix(place)} Place: ${this.colorize(p.char, p.color)} [${p.id}] - Eliminated`);
+        place++;
+      }
+    });
+    
+    console.log('');
+    console.log('  ═══════════════════════════════════════════════════');
+    console.log('');
+    console.log('');
+    
+    if (winnerId === this.playerId) {
+      console.log('  🎉 Congratulations! You are the champion! 🎉');
+    } else {
+      console.log('  Better luck next time!');
+    }
+    
+    console.log('');
+    console.log('  Press Ctrl+C to exit');
+    console.log('');
+  }
+
+  getOrdinalSuffix(num) {
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) return 'st';
+    if (j === 2 && k !== 12) return 'nd';
+    if (j === 3 && k !== 13) return 'rd';
+    return 'th';
+  }
+
   render() {
     if (!this.gameState) return;
 
     // Clear screen
     console.clear();
     
-    const { width, height, player, bots, coins, effects, players } = this.gameState;
+    const { width, height, player, bots, coins, effects, players, gameState, winner } = this.gameState;
+
+    // Check if game ended - show winner screen
+    if (gameState === 'ended' && winner) {
+      this.renderWinScreen(winner, players);
+      return;
+    }
+
+    // Check if waiting for players
+    if (gameState === 'waiting') {
+      this.renderWaitingScreen(players);
+      return;
+    }
 
     // Create grid
     const grid = Array(height).fill().map(() => Array(width).fill(' '));
