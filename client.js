@@ -166,10 +166,11 @@ class Client {
     if (selectedBot && selectedBot.queuePath && selectedBot.queuePath.length > 0) {
       selectedBot.queuePath.forEach(pathItem => {
         if (pathItem.x >= 0 && pathItem.x < width && pathItem.y >= 0 && pathItem.y < height) {
-          // Don't overwrite if there's already something there (bot, coin, etc.)
-          if (grid[pathItem.y][pathItem.x] === ' ') {
-            if (pathItem.type === 'ability') {
-              // Show ability marker
+          const currentChar = grid[pathItem.y][pathItem.x];
+          
+          if (pathItem.type === 'ability') {
+            // Ability markers can overwrite empty space or movement dots
+            if (currentChar === ' ' || currentChar === '·') {
               const abilityChar = {
                 'explosion': 'E',
                 'shoot': 'S',
@@ -177,8 +178,10 @@ class Client {
               }[pathItem.ability] || 'A';
               grid[pathItem.y][pathItem.x] = abilityChar;
               colorGrid[pathItem.y][pathItem.x] = player.color;
-            } else {
-              // Show movement path
+            }
+          } else {
+            // Movement dots only on empty spaces
+            if (currentChar === ' ') {
               grid[pathItem.y][pathItem.x] = '·';
               colorGrid[pathItem.y][pathItem.x] = player.color;
             }
