@@ -205,10 +205,10 @@ class Game {
       return;
     }
 
-    // Use ability
+    // Queue ability use (not instant)
     if (cmd === 'q') {
       if (selectedBot.ability) {
-        this.useAbility(selectedBot, selectedBot.ability);
+        selectedBot.addMove('q'); // Queue the ability use
       }
       return;
     }
@@ -275,21 +275,31 @@ class Game {
   tick() {
     this.effects = []; // Clear effects from last tick
 
-    // Collect all intended moves
+    // Collect all intended moves and ability uses
     const moveIntents = [];
+    const abilityUses = [];
     
     this.bots.forEach(bot => {
       if (bot.hasQueuedMoves()) {
         const move = bot.getNextMove();
-        const newPos = this.calculateNewPosition(bot, move);
         
-        if (newPos) {
-          moveIntents.push({
-            bot,
-            newX: newPos.x,
-            newY: newPos.y,
-            direction: move
-          });
+        // Check if this is an ability use
+        if (move === 'q') {
+          if (bot.ability) {
+            abilityUses.push({ bot, ability: bot.ability });
+          }
+        } else {
+          // Regular movement
+          const newPos = this.calculateNewPosition(bot, move);
+          
+          if (newPos) {
+            moveIntents.push({
+              bot,
+              newX: newPos.x,
+              newY: newPos.y,
+              direction: move
+            });
+          }
         }
       }
     });
@@ -338,6 +348,14 @@ class Game {
 
         // Check for coin pickup
         this.checkCoinPickup(intent.bot);
+      }
+    });
+
+    // Execute abilities (after movement)
+    abilityUses.forEach(({ bot, ability }) => {
+      const player = this.players.get(bot.playerId);
+      if (player) {
+        this.useAbility(bot, ability);
       }
     });
 
@@ -467,7 +485,7 @@ class Game {
   }
 
   shockwaveAbility(bot, player) {
-    // H-shape: 2 tiles left and right, then 2 tiles up from each end
+    // H-shape: 2 tiles left and right, then 2 tiles up AND down from each end
     const positions = [];
     
     // Horizontal parts (2 tiles each side)
@@ -476,10 +494,12 @@ class Game {
       positions.push({ x: bot.x + i, y: bot.y }); // right
     }
     
-    // Vertical parts from the ends (2 tiles up)
+    // Vertical parts from the ends (2 tiles up AND 2 tiles down)
     for (let i = 1; i <= 2; i++) {
       positions.push({ x: bot.x - 2, y: bot.y - i }); // left up
       positions.push({ x: bot.x + 2, y: bot.y - i }); // right up
+      positions.push({ x: bot.x - 2, y: bot.y + i }); // left down
+      positions.push({ x: bot.x + 2, y: bot.y + i }); // right down
     }
 
     positions.forEach(pos => {

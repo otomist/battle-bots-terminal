@@ -98,7 +98,7 @@ class Server {
     setInterval(() => {
       game.tick();
       this.broadcastGameState();
-    }, (2000/2)/2);
+    }, 2000/4);
 
     // Spawn coins periodically
     setInterval(() => {
