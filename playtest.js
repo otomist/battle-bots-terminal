@@ -436,6 +436,98 @@ test('Shockwave damages bots in H pattern, not outside', () => {
 });
 
 console.log('');
+console.log('Testing Win Conditions:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 21: Game should wait for 2 players
+test('Game waits for at least 2 players to start', () => {
+  const newGame = new (require('./game').Game)();
+  
+  assert(newGame.gameState === 'waiting', `Game should start in 'waiting' state, got ${newGame.gameState}`);
+  
+  newGame.addPlayer('solo_player', null);
+  assert(newGame.gameState === 'waiting', `Game should still be waiting with 1 player, got ${newGame.gameState}`);
+  
+  newGame.addPlayer('second_player', null);
+  assert(newGame.gameState === 'playing', `Game should be 'playing' with 2 players, got ${newGame.gameState}`);
+});
+
+// Test 22: Game detects winner when only 1 player has bots
+test('Game detects winner when only 1 player remains', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  
+  assert(newGame.gameState === 'playing', 'Game should be playing');
+  assert(newGame.winner === null, 'Should be no winner yet');
+  
+  // Kill all of player 2's bots
+  p2.bots.forEach(bot => {
+    const index = newGame.bots.indexOf(bot);
+    if (index > -1) {
+      newGame.bots.splice(index, 1);
+    }
+  });
+  p2.bots = [];
+  
+  // Check win condition
+  newGame.checkWinCondition();
+  
+  assert(newGame.gameState === 'finished', `Game should be 'finished', got ${newGame.gameState}`);
+  assert(newGame.winner === p1.id, `Winner should be player1, got ${newGame.winner}`);
+});
+
+// Test 23: Game continues with multiple players alive
+test('Game continues when multiple players have bots', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  const p3 = newGame.addPlayer('player3', null);
+  
+  assert(newGame.gameState === 'playing', 'Game should be playing');
+  
+  // Kill all of player 2's bots
+  p2.bots.forEach(bot => {
+    const index = newGame.bots.indexOf(bot);
+    if (index > -1) {
+      newGame.bots.splice(index, 1);
+    }
+  });
+  p2.bots = [];
+  
+  // Check win condition - should still be playing (p1 and p3 remain)
+  newGame.checkWinCondition();
+  
+  assert(newGame.gameState === 'playing', `Game should still be 'playing', got ${newGame.gameState}`);
+  assert(newGame.winner === null, `Should be no winner yet, got ${newGame.winner}`);
+});
+
+// Test 24: Win detection integrated into tick
+test('Win condition checked after each tick', () => {
+  const newGame = new (require('./game').Game)();
+  const p1 = newGame.addPlayer('player1', null);
+  const p2 = newGame.addPlayer('player2', null);
+  
+  // Easier test: just kill player 2's bot directly
+  const p2bot = p2.bots[0];
+  p2bot.hp = 5;
+  
+  // Damage it enough to die
+  p2bot.takeDamage(10);
+  
+  assert(p2bot.hp <= 0, 'Bot should be dead');
+  assert(newGame.gameState === 'playing', 'Game should still be playing before tick');
+  
+  // Tick should remove dead bots and check win condition
+  newGame.tick();
+  
+  // After tick, p2's bot should be removed and game should be finished
+  assert(p2.bots.length === 0, `Player 2 should have no bots, has ${p2.bots.length}`);
+  assert(newGame.gameState === 'finished', `Game should be 'finished', got ${newGame.gameState}`);
+  assert(newGame.winner === p1.id, `Winner should be player 1, got ${newGame.winner}`);
+});
+
+console.log('');
 console.log('═══════════════════════════════════════════════════════════════');
 console.log(`Tests Passed: ${testsPassed}`);
 console.log(`Tests Failed: ${testsFailed}`);

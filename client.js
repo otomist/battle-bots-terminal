@@ -126,7 +126,19 @@ class Client {
     // Clear screen
     console.clear();
     
-    const { width, height, player, bots, coins, effects, players } = this.gameState;
+    const { width, height, gameState, winner, player, bots, coins, effects, players } = this.gameState;
+
+    // Show win screen if game is finished
+    if (gameState === 'finished') {
+      this.renderWinScreen(winner, players);
+      return;
+    }
+
+    // Show waiting screen if game hasn't started
+    if (gameState === 'waiting') {
+      this.renderWaitingScreen(players);
+      return;
+    }
 
     // Create grid
     const grid = Array(height).fill().map(() => Array(width).fill(' '));
@@ -235,6 +247,90 @@ class Client {
       console.log('║ P - Close Menu                        ║');
       console.log('╚═══════════════════════════════════════╝');
     }
+  }
+
+  renderWaitingScreen(players) {
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║                                                              ║');
+    console.log('║                    BATTLE BOTS                               ║');
+    console.log('║                                                              ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log('              Waiting for players to join...');
+    console.log('');
+    console.log(`              Players: ${players.length}/2 (minimum)`);
+    console.log('');
+    
+    if (players.length > 0) {
+      console.log('              Connected players:');
+      players.forEach(p => {
+        const isYou = p.id === this.playerId ? ' (You)' : '';
+        console.log(`                ${this.colorize(p.char, p.color)}${isYou}`);
+      });
+      console.log('');
+    }
+    
+    console.log('              Game starts when 2+ players connect!');
+    console.log('');
+  }
+
+  renderWinScreen(winnerId, players) {
+    const winnerPlayer = players.find(p => p.id === winnerId);
+    
+    console.log('');
+    console.log('');
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║                                                              ║');
+    console.log('║                      GAME OVER                               ║');
+    console.log('║                                                              ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log('');
+    
+    if (winnerId === 'draw') {
+      console.log('                    🤝 IT\'S A DRAW! 🤝');
+      console.log('');
+      console.log('              All bots destroyed simultaneously!');
+    } else if (winnerPlayer) {
+      console.log('                    🎉 VICTORY! 🎉');
+      console.log('');
+      console.log('');
+      const winnerText = `PLAYER [${winnerId}] WINS!`;
+      const padding = ' '.repeat(Math.floor((62 - winnerText.length) / 2));
+      console.log(padding + this.colorize(winnerText, winnerPlayer.color));
+      console.log('');
+      console.log('');
+      
+      if (winnerId === this.playerId) {
+        console.log('              ⭐ You are the champion! ⭐');
+      } else {
+        console.log(`              Winner: ${this.colorize(winnerPlayer.char, winnerPlayer.color)}`);
+      }
+    }
+    
+    console.log('');
+    console.log('');
+    console.log('              Final Standings:');
+    console.log('              ─────────────────');
+    
+    // Sort players by whether they have bots (winner first)
+    const sortedPlayers = [...players].sort((a, b) => {
+      if (a.id === winnerId) return -1;
+      if (b.id === winnerId) return 1;
+      return b.botsCount - a.botsCount;
+    });
+    
+    sortedPlayers.forEach((p, index) => {
+      const isYou = p.id === this.playerId ? ' (You)' : '';
+      const isWinner = p.id === winnerId ? ' 👑' : '';
+      const position = index + 1;
+      console.log(`              ${position}. ${this.colorize(p.char, p.color)} - ${p.botsCount} bots${isWinner}${isYou}`);
+    });
+    
+    console.log('');
+    console.log('');
+    console.log('              Press Ctrl+C to exit');
+    console.log('');
   }
 }
 
