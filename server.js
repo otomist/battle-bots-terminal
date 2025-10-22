@@ -94,12 +94,11 @@ class Server {
       console.log(`Battle Bots server running on port ${PORT}`);
     });
 
-    // Game tick every 0.5 seconds
-    const GAME_INTERVAL = 1000 / 2;
+    // Game tick every 2 seconds
     setInterval(() => {
       game.tick();
       this.broadcastGameState();
-    }, GAME_INTERVAL);
+    }, (2000/2)/2);
 
     // Spawn coins periodically
     setInterval(() => {

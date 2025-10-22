@@ -160,11 +160,24 @@ class Game {
   }
 
   handlePlayerCommand(playerId, command) {
-    console.log(`Handling command from ${playerId}: ${command}`);
     const player = this.players.get(playerId);
     if (!player) return;
 
     const cmd = command.toLowerCase();
+
+    // Toggle buy menu (works always)
+    if (cmd === 'p') {
+      player.buyMenuOpen = !player.buyMenuOpen;
+      return;
+    }
+
+    // Buy menu commands - CHECK THIS FIRST!
+    // When menu is open, these keys are used for buying, not regular actions
+    if (player.buyMenuOpen) {
+      const selectedBot = player.getSelectedBot();
+      this.handleBuyCommand(player, selectedBot, cmd);
+      return; // Don't process any other commands when menu is open
+    }
 
     // Bot selection (1-5)
     if (cmd >= '1' && cmd <= '5') {
@@ -196,23 +209,10 @@ class Game {
 
     // Use ability
     if (cmd === 'q') {
-      console.log(`Player ${playerId} attempting to use ability of bot ${selectedBot.id}`);
       if (selectedBot.ability) {
-        console.log(`Player ${playerId} using ability ${selectedBot.ability} of bot ${selectedBot.id}`);
         this.useAbility(selectedBot, selectedBot.ability);
       }
       return;
-    }
-
-    // Toggle buy menu
-    if (cmd === 'p') {
-      player.buyMenuOpen = !player.buyMenuOpen;
-      return;
-    }
-
-    // Buy menu commands
-    if (player.buyMenuOpen) {
-      this.handleBuyCommand(player, selectedBot, cmd);
     }
   }
 
@@ -256,8 +256,8 @@ class Game {
         }
         break;
       case 'b': // buy new bot
-        if (player.money >= 15 && player.bots.length < 5) {
-          player.money -= 15;
+        if (player.money >= 10 && player.bots.length < 5) {
+          player.money -= 10;
           const spawnPos = this.getRandomSpawnPosition();
           const newBot = new Bot(this.botIdCounter++, spawnPos.x, spawnPos.y, player.id);
           this.bots.push(newBot);

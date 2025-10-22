@@ -89,6 +89,23 @@ class Client {
 
       let command = null;
 
+      // Check buy menu first - it takes priority
+      if (this.gameState.player.buyMenuOpen) {
+        // Buy menu commands (including q, r which are also used elsewhere)
+        if (str && 'raqfhb'.includes(str.toLowerCase())) {
+          command = str.toLowerCase();
+          this.sendCommand(command);
+          return; // Early return to prevent double handling
+        }
+        // P to close menu
+        if (key.name === 'p') {
+          command = 'p';
+          this.sendCommand(command);
+          return;
+        }
+      }
+
+      // Regular game commands (only when menu is closed)
       if (key.name === 'w' || key.name === 'a' || key.name === 's' || key.name === 'd') {
         command = key.name;
       } else if (key.name === 'q' || key.name === 'r' || key.name === 'p') {
@@ -97,11 +114,6 @@ class Client {
         command = 'tab';
       } else if (str >= '1' && str <= '5') {
         command = str;
-      } else if (this.gameState.player.buyMenuOpen) {
-        // Buy menu commands
-        if ('raqfhb'.includes(str)) {
-          command = str;
-        }
       }
 
       if (command) {
@@ -230,7 +242,7 @@ class Client {
       console.log('║ Q - Explosion Ability ....... $10     ║');
       console.log('║ F - Shoot Ability ........... $10     ║');
       console.log('║ H - Shockwave Ability ....... $20     ║');
-      console.log('║ B - Buy New Bot ............. $15     ║');
+      console.log('║ B - Buy New Bot ............. $10     ║');
       console.log('╠═══════════════════════════════════════╣');
       console.log('║ P - Close Menu                        ║');
       console.log('╚═══════════════════════════════════════╝');
