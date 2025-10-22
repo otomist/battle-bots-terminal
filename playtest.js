@@ -321,6 +321,119 @@ test('Number keys select bots', () => {
 });
 
 console.log('');
+console.log('Testing New Features:');
+console.log('─────────────────────────────────────────────────────────────');
+
+// Test 18: H-Ability proper H shape
+test('H-Ability creates proper H shape (not just up, but up AND down)', () => {
+  const attacker = player1.bots[2];
+  attacker.x = 10;
+  attacker.y = 10;
+  attacker.ability = 'shockwave';
+  
+  game.effects = [];
+  game.useAbility(attacker, 'shockwave');
+  
+  // H shape should have:
+  // Horizontal bar: 2 left + 2 right = 4 tiles
+  // Vertical legs: 2 up + 2 down on EACH side = 8 tiles
+  // Total: 12 tiles
+  assert(game.effects.length === 12, `Expected 12 effects for H shape, got ${game.effects.length}`);
+  
+  // Check horizontal bar
+  assert(game.effects.some(e => e.x === 8 && e.y === 10), 'Missing horizontal left 2');
+  assert(game.effects.some(e => e.x === 9 && e.y === 10), 'Missing horizontal left 1');
+  assert(game.effects.some(e => e.x === 11 && e.y === 10), 'Missing horizontal right 1');
+  assert(game.effects.some(e => e.x === 12 && e.y === 10), 'Missing horizontal right 2');
+  
+  // Check left vertical leg (up)
+  assert(game.effects.some(e => e.x === 8 && e.y === 9), 'Missing left leg up 1');
+  assert(game.effects.some(e => e.x === 8 && e.y === 8), 'Missing left leg up 2');
+  
+  // Check left vertical leg (down)
+  assert(game.effects.some(e => e.x === 8 && e.y === 11), 'Missing left leg down 1');
+  assert(game.effects.some(e => e.x === 8 && e.y === 12), 'Missing left leg down 2');
+  
+  // Check right vertical leg (up)
+  assert(game.effects.some(e => e.x === 12 && e.y === 9), 'Missing right leg up 1');
+  assert(game.effects.some(e => e.x === 12 && e.y === 8), 'Missing right leg up 2');
+  
+  // Check right vertical leg (down)
+  assert(game.effects.some(e => e.x === 12 && e.y === 11), 'Missing right leg down 1');
+  assert(game.effects.some(e => e.x === 12 && e.y === 12), 'Missing right leg down 2');
+});
+
+// Test 19: Abilities queue like movement
+test('Abilities are queued and execute in order with movement', () => {
+  const bot = player1.bots[0];
+  bot.x = 5;
+  bot.y = 5;
+  bot.hp = 20;
+  bot.ability = 'explosion';
+  bot.clearQueue();
+  
+  // Place enemy near where bot will be
+  const enemy = player2.bots[0];
+  enemy.x = 6;
+  enemy.y = 7; // Will be adjacent after bot moves down twice
+  enemy.hp = 20;
+  
+  // Queue: move south twice, use ability, move east
+  game.handlePlayerCommand(player1.id, 's');
+  game.handlePlayerCommand(player1.id, 's');
+  game.handlePlayerCommand(player1.id, 'q'); // Use ability
+  game.handlePlayerCommand(player1.id, 'd');
+  
+  assert(bot.moveQueue.length === 4, `Expected 4 queued actions, got ${bot.moveQueue.length}`);
+  assert(bot.moveQueue[0] === 's', 'First action should be s');
+  assert(bot.moveQueue[1] === 's', 'Second action should be s');
+  assert(bot.moveQueue[2] === 'q', 'Third action should be q (ability)');
+  assert(bot.moveQueue[3] === 'd', 'Fourth action should be d');
+  
+  // Execute first tick - move south
+  game.tick();
+  assert(bot.y === 6, `Bot should be at y=6, got ${bot.y}`);
+  assert(bot.moveQueue.length === 3, `Should have 3 actions left, got ${bot.moveQueue.length}`);
+  
+  // Execute second tick - move south again
+  game.tick();
+  assert(bot.y === 7, `Bot should be at y=7, got ${bot.y}`);
+  assert(bot.moveQueue.length === 2, `Should have 2 actions left, got ${bot.moveQueue.length}`);
+  
+  // Execute third tick - use ability (should damage adjacent enemy)
+  const enemyHpBefore = enemy.hp;
+  game.tick();
+  assert(bot.y === 7, `Bot should still be at y=7 after ability, got ${bot.y}`);
+  assert(enemy.hp < enemyHpBefore, `Enemy should take damage from explosion`);
+  assert(bot.moveQueue.length === 1, `Should have 1 action left, got ${bot.moveQueue.length}`);
+  
+  // Execute fourth tick - move east
+  game.tick();
+  assert(bot.x === 6, `Bot should be at x=6, got ${bot.x}`);
+  assert(bot.moveQueue.length === 0, `Should have 0 actions left, got ${bot.moveQueue.length}`);
+});
+
+// Test 20: Multiple abilities in queue
+test('Can queue multiple movements and abilities in sequence', () => {
+  const bot = player1.bots[1];
+  bot.x = 10;
+  bot.y = 10;
+  bot.ability = 'shoot';
+  bot.clearQueue();
+  
+  // Queue: w, q, w, q, w
+  game.handlePlayerCommand(player1.id, '2'); // Select bot 2
+  game.handlePlayerCommand(player1.id, 'w');
+  game.handlePlayerCommand(player1.id, 'q');
+  game.handlePlayerCommand(player1.id, 'w');
+  game.handlePlayerCommand(player1.id, 'q');
+  game.handlePlayerCommand(player1.id, 'w');
+  
+  assert(bot.moveQueue.length === 5, `Expected 5 queued actions, got ${bot.moveQueue.length}`);
+  assert(bot.moveQueue.join(',') === 'w,q,w,q,w', `Queue order wrong: ${bot.moveQueue.join(',')}`);
+});
+
+console.log('');
 console.log('═══════════════════════════════════════════════════════════════');
 console.log(`Tests Passed: ${testsPassed}`);
 console.log(`Tests Failed: ${testsFailed}`);
