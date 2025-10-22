@@ -31,6 +31,21 @@ class Bot {
     return this.moveQueue.length > 0;
   }
 
+  getQueueVisualization() {
+    return this.moveQueue.map(cmd => {
+      if (cmd === 'ability') {
+        // Show ability letter based on ability type
+        if (this.ability === 'explosion') return 'E';
+        if (this.ability === 'shoot') return 'S';
+        if (this.ability === 'shockwave') return 'H';
+        return 'Q'; // default for unknown ability
+      } else {
+        // Movement command - show as #
+        return '#';
+      }
+    }).join('');
+  }
+
   takeDamage(amount) {
     this.hp -= amount;
     return this.hp <= 0;
@@ -315,34 +330,60 @@ class Game {
       }
     });
 
-    // Detect collisions
+    // Detect collisions - check both moving bots and stationary bots
     const positionMap = new Map();
+    
+    // First, add all stationary bots to position map
+    this.bots.forEach(bot => {
+      // Check if this bot is not in moveIntents (i.e., it's stationary)
+      const isMoving = moveIntents.some(intent => intent.bot === bot);
+      if (!isMoving) {
+        const key = `${bot.x},${bot.y}`;
+        if (!positionMap.has(key)) {
+          positionMap.set(key, []);
+        }
+        positionMap.get(key).push({ bot, stationary: true });
+      }
+    });
+    
+    // Add all moving bots to position map
     moveIntents.forEach(intent => {
       const key = `${intent.newX},${intent.newY}`;
       if (!positionMap.has(key)) {
         positionMap.set(key, []);
       }
-      positionMap.get(key).push(intent);
+      positionMap.get(key).push({ ...intent, stationary: false });
     });
 
-    // Execute moves and apply collision damage
+    // Apply collision damage for all positions with multiple bots
+    const processedPositions = new Set();
+    
+    positionMap.forEach((botsAtPosition, key) => {
+      if (botsAtPosition.length > 1 && !processedPositions.has(key)) {
+        processedPositions.add(key);
+        
+        // Check if there are enemy bots at this position
+        const playerIds = new Set(botsAtPosition.map(b => b.bot.playerId));
+        
+        if (playerIds.size > 1) {
+          // Enemy collision - damage ALL bots at this position
+          botsAtPosition.forEach(b => {
+            b.bot.takeDamage(10);
+          });
+        }
+      }
+    });
+    
+    // Execute moves (only if no collision)
     moveIntents.forEach(intent => {
       const key = `${intent.newX},${intent.newY}`;
       const botsAtPosition = positionMap.get(key);
       
       if (botsAtPosition.length > 1) {
-        // Collision! Multiple bots trying to move to same spot
-        const enemyBots = botsAtPosition.filter(i => 
-          i.bot.playerId !== intent.bot.playerId
-        );
-        
-        if (enemyBots.length > 0) {
-          // Only damage if it's an enemy collision
-          intent.bot.takeDamage(10);
-        }
-        // Don't move the bot
+        // Collision - don't move the bot
+        // (damage already applied above)
       } else {
-        // Move successful
+        // Move successful (no collision)
         intent.bot.x = intent.newX;
         intent.bot.y = intent.newY;
         
@@ -579,6 +620,7 @@ class Game {
         playerId: bot.playerId,
         ability: bot.ability,
         queueLength: bot.moveQueue.length,
+        queueVisualization: bot.getQueueVisualization(),
         isOwn: bot.playerId === playerId
       })),
       coins: this.coins,
